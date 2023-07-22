@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace TelegramAttributeCommands
 {
@@ -13,6 +14,7 @@ namespace TelegramAttributeCommands
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+            builder.Services.AddSingleton(new BotUpdateHandler("6502376866:AAHUe3dy2yTsBJZCDeYyKMNWHTN5lVsrvPA"));
 
             var app = builder.Build();
 
@@ -26,7 +28,6 @@ namespace TelegramAttributeCommands
             app.UseHttpsRedirection();
 
             app.UseAuthorization();
-
 
             app.MapControllers();
 
