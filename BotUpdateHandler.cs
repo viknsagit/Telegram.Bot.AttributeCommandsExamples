@@ -1,8 +1,11 @@
-﻿using Telegram.Bot;
+﻿using System.Reflection;
+using Telegram.Bot;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
+using TelegramAttributeCommands.Attributes;
+using TelegramAttributeCommands.Commads;
 
 namespace TelegramAttributeCommands
 {
@@ -10,24 +13,23 @@ namespace TelegramAttributeCommands
     {
         private readonly TelegramBotClient botClient;
         private CancellationTokenSource cts = new();
+        private Commands commands = new();
 
         public BotUpdateHandler(string BotToken)
         {
+            commands.RegisterTextCommands(typeof(TestCommands));
+            commands.RegisterCallbackCommands(typeof(TestCommands));
+
             botClient = new TelegramBotClient(BotToken);
             StartListeningUpdate();
         }
 
         private void StartListeningUpdate()
         {
-            ReceiverOptions receiverOptions = new()
-            {
-                AllowedUpdates = Array.Empty<UpdateType>() // receive all update types except ChatMember related updates
-            };
-
             botClient.StartReceiving(
                 updateHandler: HandleUpdateAsync,
                 pollingErrorHandler: HandlePollingErrorAsync,
-                receiverOptions: receiverOptions,
+                receiverOptions: new ReceiverOptions { AllowedUpdates = Array.Empty<UpdateType>() },
                 cancellationToken: cts.Token
             );
         }
@@ -59,25 +61,34 @@ namespace TelegramAttributeCommands
 
         private async Task BotOnCallbackQueryReceived(CallbackQuery callbackQuery, CancellationTokenSource cts)
         {
-            await Task.CompletedTask;
+            await ProcessCallbackCommand(botClient, callbackQuery);
         }
 
         private async Task BotOnMessageReceived(Message message, CancellationTokenSource cts)
         {
-            switch (message.Text)
-            {
-                case "/test":
-                    {
-                        await botClient.SendTextMessageAsync(message.Chat.Id, "TestCommand", cancellationToken: cts.Token);
-                    }
-                    break;
-
-                default:
-                    break;
-            }
+            await ProcessTextCommand(botClient, message);
         }
 
-        private Task HandlePollingErrorAsync(ITelegramBotClient botClient, Exception exception, CancellationToken cancellationToken)
+        private async Task ProcessTextCommand(TelegramBotClient client, Message message)
+        {
+            // Поиск метода с атрибутом, соответствующим команде
+            var method = commands.GetTextCommand(message.Text);
+
+            // Вызов метода, соответствующего команде
+            method?.Invoke(this, new object[] { client, message });
+            await Task.CompletedTask;
+        }
+
+        private async Task ProcessCallbackCommand(TelegramBotClient client, CallbackQuery callback)
+        {
+            var method = commands.GetCallbackCommand(callback.Data);
+
+            // Вызов метода, соответствующего команде
+            method?.Invoke(this, new object[] { client, callback });
+            await Task.CompletedTask;
+        }
+
+        private async Task HandlePollingErrorAsync(ITelegramBotClient botClient, Exception exception, CancellationToken cancellationToken)
         {
             var ErrorMessage = exception switch
             {
@@ -87,7 +98,7 @@ namespace TelegramAttributeCommands
             };
 
             Console.WriteLine(ErrorMessage);
-            return Task.CompletedTask;
+            await Task.CompletedTask;
         }
     }
 }
