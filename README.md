@@ -1,1 +1,1 @@
-# TelegramAttributeCommands
+# Telegram.Bot.AttributeCommands
