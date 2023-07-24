@@ -4,7 +4,7 @@ using Telegram.Bot.Exceptions;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
-using TelegramAttributeCommands.Attributes;
+using Telegram.Bot.AttributeCommands;
 using TelegramAttributeCommands.Commads;
 
 namespace TelegramAttributeCommands
@@ -12,8 +12,8 @@ namespace TelegramAttributeCommands
     public class BotUpdateHandler
     {
         private readonly TelegramBotClient botClient;
-        private CancellationTokenSource cts = new();
-        private Commands commands = new();
+        private readonly CancellationTokenSource cts = new();
+        private readonly AttributeCommands commands = new();
 
         public BotUpdateHandler(string BotToken)
         {
@@ -61,31 +61,12 @@ namespace TelegramAttributeCommands
 
         private async Task BotOnCallbackQueryReceived(CallbackQuery callbackQuery, CancellationTokenSource cts)
         {
-            await ProcessCallbackCommand(botClient, callbackQuery);
+            await commands.ProcessCallbackCommand(callbackQuery.Data!, new object[] { botClient, callbackQuery });
         }
 
         private async Task BotOnMessageReceived(Message message, CancellationTokenSource cts)
         {
-            await ProcessTextCommand(botClient, message);
-        }
-
-        private async Task ProcessTextCommand(TelegramBotClient client, Message message)
-        {
-            // Поиск метода с атрибутом, соответствующим команде
-            var method = commands.GetTextCommand(message.Text);
-
-            // Вызов метода, соответствующего команде
-            method?.Invoke(this, new object[] { client, message });
-            await Task.CompletedTask;
-        }
-
-        private async Task ProcessCallbackCommand(TelegramBotClient client, CallbackQuery callback)
-        {
-            var method = commands.GetCallbackCommand(callback.Data);
-
-            // Вызов метода, соответствующего команде
-            method?.Invoke(this, new object[] { client, callback });
-            await Task.CompletedTask;
+            await commands.ProcessTextCommand(message.Text!, new object[] { botClient, message });
         }
 
         private async Task HandlePollingErrorAsync(ITelegramBotClient botClient, Exception exception, CancellationToken cancellationToken)

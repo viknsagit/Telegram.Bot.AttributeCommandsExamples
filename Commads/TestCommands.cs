@@ -1,7 +1,7 @@
 ﻿using Telegram.Bot;
+using Telegram.Bot.AttributeCommands.Attributes;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
-using TelegramAttributeCommands.Attributes;
 
 namespace TelegramAttributeCommands.Commads
 {
