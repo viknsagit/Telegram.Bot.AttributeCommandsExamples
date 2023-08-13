@@ -5,6 +5,7 @@ using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.AttributeCommands;
+using Telegram.Bot.AttributeCommands.Exceptions;
 using TelegramAttributeCommands.Commads;
 
 namespace TelegramAttributeCommands
@@ -13,12 +14,20 @@ namespace TelegramAttributeCommands
     {
         private readonly TelegramBotClient botClient;
         private readonly CancellationTokenSource cts = new();
-        private readonly AttributeCommands commands = new();
+        private readonly AttributeCommands Commands = new();
 
         public BotUpdateHandler(string BotToken)
         {
-            commands.RegisterTextCommands(typeof(TestCommands));
-            commands.RegisterCallbackCommands(typeof(TestCommands));
+            try
+            {
+                Commands.RegisterTextCommands(typeof(TestCommands));
+                Commands.RegisterCallbackCommands(typeof(TestCommands));
+                Commands.RegisterReplyCommands(typeof(TestCommands));
+            }
+            catch (CommandExistsException ex)
+            {
+                //do
+            }
 
             botClient = new TelegramBotClient(BotToken);
             StartListeningUpdate();
@@ -39,9 +48,13 @@ namespace TelegramAttributeCommands
             switch (update)
             {
                 case { Message: { } message }:
+                    {
+                        if (message.ReplyToMessage != null)
+                            await BotOnReplyMessage(message, cts);
+                        else if (message.Text != null)
+                            await BotOnMessageReceived(message, cts);
+                    }
 
-                    if (message.Text != null)
-                        await BotOnMessageReceived(message, cts);
                     break;
 
                 case { CallbackQuery: { } callbackQuery }:
@@ -54,6 +67,18 @@ namespace TelegramAttributeCommands
             }
         }
 
+        private async Task BotOnReplyMessage(Message message, CancellationTokenSource cts)
+        {
+            try
+            {
+                await Commands.ProcessCommand(message.ReplyToMessage!.Text!, new object[] { botClient, message });
+            }
+            catch (CommandNotFoundException ex)
+            {
+                await botClient.SendTextMessageAsync(message.Chat.Id, ex.Message);
+            }
+        }
+
         private async Task UnknownUpdateHandlerAsync(Update update, CancellationTokenSource cts)
         {
             await botClient.SendTextMessageAsync(update.Message!.Chat.Id, "Unknown update", cancellationToken: cts.Token);
@@ -61,12 +86,26 @@ namespace TelegramAttributeCommands
 
         private async Task BotOnCallbackQueryReceived(CallbackQuery callbackQuery, CancellationTokenSource cts)
         {
-            await commands.ProcessCallbackCommand(callbackQuery.Data!, new object[] { botClient, callbackQuery });
+            try
+            {
+                await Commands.ProcessCommand(callbackQuery.Data!, new object[] { botClient, callbackQuery });
+            }
+            catch (CommandNotFoundException ex)
+            {
+                await botClient.SendTextMessageAsync(callbackQuery.Message!.Chat.Id, ex.Message);
+            }
         }
 
         private async Task BotOnMessageReceived(Message message, CancellationTokenSource cts)
         {
-            await commands.ProcessTextCommand(message.Text!, new object[] { botClient, message });
+            try
+            {
+                await Commands.ProcessCommand(message.Text!, new object[] { botClient, message });
+            }
+            catch (CommandNotFoundException ex)
+            {
+                await botClient.SendTextMessageAsync(message.Chat.Id, ex.Message);
+            }
         }
 
         private async Task HandlePollingErrorAsync(ITelegramBotClient botClient, Exception exception, CancellationToken cancellationToken)

@@ -20,10 +20,22 @@ namespace TelegramAttributeCommands.Commads
             await client.SendTextMessageAsync(message.Chat.Id, "Test message", replyMarkup: testMarkup, cancellationToken: cts.Token);
         }
 
+        [TextCommand("/reply")]
+        public static async Task TestReplyCommand(TelegramBotClient client, Message message)
+        {
+            await client.SendTextMessageAsync(message.Chat.Id, "reply", replyMarkup: new ForceReplyMarkup { InputFieldPlaceholder = "Test reply" }, cancellationToken: cts.Token);
+        }
+
         [CallbackCommand("test")]
         public static async Task TestCallback(TelegramBotClient client, CallbackQuery callbackQuery)
         {
             await client.SendTextMessageAsync(callbackQuery.Message!.Chat.Id, "Test callback msg", cancellationToken: cts.Token);
+        }
+
+        [ReplyCommand("reply")]
+        public static async Task TestReply(TelegramBotClient client, Message message)
+        {
+            await client.SendTextMessageAsync(message.Chat.Id, "Test reply", replyMarkup: testMarkup, cancellationToken: cts.Token);
         }
     }
 }
