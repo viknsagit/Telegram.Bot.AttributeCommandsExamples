@@ -20,11 +20,9 @@ namespace TelegramAttributeCommands
         {
             try
             {
-                Commands.RegisterTextCommands(typeof(TestCommands));
-                Commands.RegisterCallbackCommands(typeof(TestCommands));
-                Commands.RegisterReplyCommands(typeof(TestCommands));
+                Commands.RegisterCommands(typeof(TestCommands));
             }
-            catch (CommandExistsException ex)
+            catch (CommandExistsException)
             {
                 //do
             }
@@ -77,6 +75,14 @@ namespace TelegramAttributeCommands
             {
                 await botClient.SendTextMessageAsync(message.Chat.Id, ex.Message);
             }
+            catch (CommandBadArgumentType)
+            {
+                //do
+            }
+            catch (CommandArgumentsCountError)
+            {
+                //do
+            }
         }
 
         private async Task UnknownUpdateHandlerAsync(Update update, CancellationTokenSource cts)
@@ -94,6 +100,14 @@ namespace TelegramAttributeCommands
             {
                 await botClient.SendTextMessageAsync(callbackQuery.Message!.Chat.Id, ex.Message);
             }
+            catch (CommandBadArgumentType)
+            {
+                //do
+            }
+            catch (CommandArgumentsCountError)
+            {
+                //do
+            }
         }
 
         private async Task BotOnMessageReceived(Message message, CancellationTokenSource cts)
@@ -105,6 +119,14 @@ namespace TelegramAttributeCommands
             catch (CommandNotFoundException ex)
             {
                 await botClient.SendTextMessageAsync(message.Chat.Id, ex.Message);
+            }
+            catch (CommandBadArgumentType)
+            {
+                //do
+            }
+            catch (CommandArgumentsCountError)
+            {
+                //do
             }
         }
 
